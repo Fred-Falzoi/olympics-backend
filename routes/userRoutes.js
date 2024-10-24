@@ -1,51 +1,40 @@
 const express = require('express');
-const router = express.Router();
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const router = express.Router();
 
-// Simule une base de données pour les utilisateurs
-const users = [];
+// Simule une base de données d'utilisateurs
+const users = [
+  { id: 1, email: 'user@example.com', password: 'password123', name: 'John Doe' }
+];
 
-// Inscription
-router.post('/register', async (req, res) => {
-  const { name, email, password } = req.body;
+// Route pour s'inscrire
+router.post('/register', (req, res) => {
+  const { email, password, name } = req.body;
+  const existingUser = users.find(u => u.email === email);
 
-  // Vérifie si l'utilisateur existe déjà
-  const userExists = users.find(user => user.email === email);
-  if (userExists) {
-    return res.status(400).json({ message: 'Utilisateur déjà existant' });
+  if (existingUser) {
+    return res.status(400).json({ message: 'L\'email est déjà utilisé' });
   }
 
-  // Hash du mot de passe
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const newUser = { id: users.length + 1, email, password, name };
+  users.push(newUser);
 
-  // Création de l'utilisateur
-  const user = { name, email, password: hashedPassword };
-  users.push(user);
-
-  res.status(201).json({ message: 'Utilisateur créé avec succès', user });
+  res.status(201).json({ message: 'Utilisateur inscrit avec succès', user: newUser });
 });
 
-// Connexion
-router.post('/login', async (req, res) => {
+// Route pour se connecter
+router.post('/login', (req, res) => {
   const { email, password } = req.body;
+  const user = users.find(u => u.email === email && u.password === password);
 
-  // Vérifie si l'utilisateur existe
-  const user = users.find(user => user.email === email);
   if (!user) {
-    return res.status(400).json({ message: 'Utilisateur non trouvé' });
+    return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
   }
 
-  // Vérifie le mot de passe
-  const validPassword = await bcrypt.compare(password, user.password);
-  if (!validPassword) {
-    return res.status(400).json({ message: 'Mot de passe incorrect' });
-  }
+  // Générer un token JWT
+  const token = jwt.sign({ id: user.id, name: user.name, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-  // Génère un token JWT
-  const token = jwt.sign({ userId: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-  res.json({ message: 'Connexion réussie', token });
+  res.json({ token });
 });
 
 module.exports = router;

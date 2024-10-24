@@ -19,10 +19,10 @@ app.use(cors());
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.sendStatus(401);
+  if (!token) return res.status(401).json({ message: 'Token manquant ou invalide' });
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
+    if (err) return res.status(403).json({ message: 'Token non valide ou expiré' });
     req.user = user;
     next();
   });
@@ -36,11 +36,18 @@ app.get('/', (req, res) => {
 // Routes API
 const userRoutes = require('./routes/userRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
+
+// Utiliser les routes
 app.use('/api/users', userRoutes);
 app.use('/api/tickets', authenticateToken, ticketRoutes); // Protéger les routes des tickets
+
+// Gestion des erreurs
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Une erreur est survenue sur le serveur' });
+});
 
 // Démarrage du serveur
 app.listen(port, () => {
   console.log(`Serveur en écoute sur le port ${port}`);
 });
-
