@@ -56,18 +56,18 @@ Le token reçu doit être utilisé dans les requêtes protégées en tant que Be
 
 ### 2.2 Acheter un billet
 
+
 ### Route : /api/tickets/buy
 - Méthode : POST
-- Description : Permet à un utilisateur de réserver un billet.
+- Description : Cette route permet à l'utilisateur d'acheter un billet et de recevoir un QR code qui sert de e-billet.
 - URL complète : https://olympics-backend.onrender.com/api/tickets/buy
-- Headers : 
-  - Authorization : Bearer <token JWT>
 - Corps de la requête (format JSON) :
-  - offerId: 1
+  - offerId: { "offerId": 1, "userKey": "clé-unique-utilisateur" }
 - Réponse attendue :
-  - message: "Billet acheté avec succès pour Offre Solo"
-  - ticket: id: 1, name: "Offre Solo", price: 100
+  { "message": "Billet acheté pour Offre Solo", "ticket": { "id": 1, "name": "Offre Solo", "price": 100 }, "qrCodeUrl": "data
+  /png;base64,..." // URL de l'image du QR Code }
 
+Le champ qrCodeUrl contient l'image encodée en base64 du QR code, que l'utilisateur peut scanner pour accéder à son e-billet sécurisé.
 ---
 
 ## 3. Espace Administrateur

@@ -1,7 +1,6 @@
 const express = require('express');
-const crypto = require('crypto');
-const QRCode = require('qrcode');
 const router = express.Router();
+const qrcode = require('qrcode');
 
 // Simule une base de données pour les billets
 const tickets = [
@@ -10,37 +9,31 @@ const tickets = [
   { id: 3, name: 'Offre Familiale', price: 320 }
 ];
 
-// Route pour obtenir les offres disponibles
-router.get('/', (req, res) => {
-  res.json(tickets);
-});
-
 // Route pour acheter un billet
-router.post('/buy', (req, res) => {
-  const { offerId } = req.body;
+router.post('/buy', async (req, res) => {
+  const { offerId, userKey } = req.body;  // On récupère l'offre et une clé utilisateur
   const ticket = tickets.find(t => t.id === offerId);
 
   if (!ticket) {
     return res.status(404).json({ message: 'Offre non trouvée' });
   }
 
-  // Générer une clef unique pour l'achat
-  const purchaseKey = crypto.randomBytes(16).toString('hex');
-  const finalKey = req.user.jwtToken + purchaseKey; // Concaténation avec le token utilisateur
+  // Générer une clé finale pour sécuriser le billet (concaténation)
+  const finalKey = `${userKey}-${ticket.name}-${Date.now()}`;
 
-  // Générer le QR Code basé sur la clef finale
-  QRCode.toDataURL(finalKey, (err, url) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erreur lors de la génération du QR Code' });
-    }
+  // Générer le QR code basé sur la clé finale
+  try {
+    const qrCodeUrl = await qrcode.toDataURL(finalKey);
 
-    // Retourner les informations d'achat et le QR Code
-    res.json({ 
-      message: `Billet acheté pour ${ticket.name}`, 
-      finalKey, 
-      qrCode: url 
+    // Retourner les informations du billet avec le QR code
+    res.json({
+      message: `Billet acheté pour ${ticket.name}`,
+      ticket,
+      qrCodeUrl  // L'URL du QR code à afficher ou à scanner
     });
-  });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur lors de la génération du QR code' });
+  }
 });
 
 module.exports = router;
